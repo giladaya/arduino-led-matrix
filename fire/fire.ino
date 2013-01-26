@@ -15,16 +15,7 @@ typedef struct
   unsigned char v;
 } ColorHSV;
 
-//const unsigned char valueMask[ColorduinoScreenWidth][ColorduinoScreenHeight]={
-//    {0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  },
-//    {32 , 32 , 32 , 32 , 32 , 32 , 32 , 32 }, 
-//    {64 , 64 , 64 , 64 , 64 , 64 , 64 , 64 },
-//    {96 , 96 , 96 , 96 , 96 , 96 , 96 , 96 }, 
-//    {128, 128, 128, 128, 128, 128, 128, 128},
-//    {160, 160, 160, 160, 160, 160, 160, 160},
-//    {192, 192, 192, 192, 192, 192, 192, 192}, 
-//    {255, 255, 255, 255, 255, 255, 255, 255}, 
-//};
+//these values are substracetd from the generated values to give a shape to the animation
 const unsigned char valueMask[ColorduinoScreenWidth][ColorduinoScreenHeight]={
     {32 , 0  , 0  , 0  , 0  , 0  , 0  , 32 },
     {64 , 0  , 0  , 0  , 0  , 0  , 0  , 64 },
@@ -36,6 +27,8 @@ const unsigned char valueMask[ColorduinoScreenWidth][ColorduinoScreenHeight]={
     {255, 192, 160, 128, 128, 160, 192, 255}
 };
 
+//these are the hues for the fire, 
+//should be between 0 (red) to about 13 (yellow)
 const unsigned char hueMask[ColorduinoScreenWidth][ColorduinoScreenHeight]={
     {3, 5, 7, 9, 9, 8, 6, 4},
     {2, 5, 7, 7, 7, 7, 5, 3},
@@ -47,10 +40,9 @@ const unsigned char hueMask[ColorduinoScreenWidth][ColorduinoScreenHeight]={
     {0, 0, 0, 1, 1, 0, 0, 0}
 };
 
-ColorHSV matrix[ColorduinoScreenWidth][ColorduinoScreenHeight];
+unsigned char matrix[ColorduinoScreenWidth][ColorduinoScreenHeight];
 unsigned char line[ColorduinoScreenWidth];
 int pcnt = 0;
-unsigned char gx = 0; //temporary
 
 //Converts an HSV color to RGB color
 void HSVtoRGB(void *vRGB, void *vHSV) 
@@ -99,7 +91,7 @@ void HSVtoRGB(void *vRGB, void *vHSV)
 }
 
 /**
- * Randomly generate the next line (row)
+ * Randomly generate the next line (matrix row)
  */
 void generateLine(){
   for(unsigned char x=0;x<ColorduinoScreenHeight;x++) {
@@ -115,12 +107,12 @@ void shiftUp(){
   
   for (unsigned char y=ColorduinoScreenWidth-1;y>0;y--) {
     for(unsigned char x=0;x<ColorduinoScreenHeight;x++) {
-        matrix[x][y].v = matrix[x][y-1].v;
+        matrix[x][y] = matrix[x][y-1];
     }
   }
   
   for(unsigned char x=0;x<ColorduinoScreenHeight;x++) {
-      matrix[x][0].v = line[x];
+      matrix[x][0] = line[x];
   }
 }
 
@@ -133,13 +125,14 @@ void drawFrame(int pcnt){
   ColorHSV colorHSV;
   int nextv;
   
+  //each row interpolates with the one before it
   for (unsigned char y=ColorduinoScreenWidth-1;y>0;y--) {
     for (unsigned char x=0;x<ColorduinoScreenHeight;x++) {
-        colorHSV.h = (unsigned char)(((100.0-pcnt)*matrix[x][y].h + pcnt*matrix[x][y-1].h)/100.0);
-        colorHSV.s = (unsigned char)(((100.0-pcnt)*matrix[x][y].s + pcnt*matrix[x][y-1].s)/100.0);
+        colorHSV.h = hueMask[y][x];
+        colorHSV.s = 255;
         nextv = 
-            (unsigned char)(((100.0-pcnt)*matrix[x][y].v 
-          + pcnt*matrix[x][y-1].v)/100.0) 
+            (((100.0-pcnt)*matrix[x][y] 
+          + pcnt*matrix[x][y-1])/100.0) 
           - valueMask[y][x];
         colorHSV.v = (unsigned char)max(0, nextv);
         
@@ -148,11 +141,11 @@ void drawFrame(int pcnt){
     }
   }
   
+  //first row interpolates with the "next" line
   for(unsigned char x=0;x<ColorduinoScreenHeight;x++) {
-//      colorHSV.h = (unsigned char)(((100.0-pcnt)*matrix[x][0].h + pcnt*hueMask[0][x])/100.0);
       colorHSV.h = hueMask[0][x];
       colorHSV.s = 255;
-      colorHSV.v = (unsigned char)(((100.0-pcnt)*matrix[x][0].v + pcnt*line[x])/100.0);
+      colorHSV.v = (unsigned char)(((100.0-pcnt)*matrix[x][0] + pcnt*line[x])/100.0);
       
       HSVtoRGB(&colorRGB, &colorHSV);
       Colorduino.SetPixel(x, 0, colorRGB.r, colorRGB.g, colorRGB.b);
@@ -178,10 +171,7 @@ void setup()
   //init all pixels to zero
   for (unsigned char y=0;y<ColorduinoScreenWidth;y++) {
     for(unsigned char x=0;x<ColorduinoScreenHeight;x++) {
-        matrix[x][y].h = hueMask[y][x];
-        matrix[x][y].s = 255;
-        matrix[x][y].v = 0;
-        //Colorduino.SetPixel(x, y, 0, 0, 0);
+        matrix[x][y] = 0;
     }
   }
   
@@ -196,7 +186,5 @@ void loop()
         pcnt = 0;
     }
     drawFrame(pcnt);
-    pcnt+=20;
-//    delay(50);
-    //fillWhite();
+    pcnt+=30;
 }
