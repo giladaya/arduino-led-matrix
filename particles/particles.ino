@@ -16,6 +16,12 @@ typedef struct
   byte v;
 } ColorHSV;
 
+typedef struct
+{
+    signed char x;
+    signed char y;
+} VactorCart;
+
 //a particle
 typedef struct 
 {
@@ -29,66 +35,26 @@ typedef struct
 
 const byte res = 8;
 const byte maxDim = 255;
-const byte numParticles = 5;
+const byte numParticles = 20;
 const byte pWidth = maxDim / res + 1; //32
 const int pSurface = pWidth*pWidth; //1024
 unsigned int frame = 0;
+unsigned int pCount = 0;
 
 Particle particles[numParticles];
 
 ColorHSV matrix[res][res];
 
-//Converts an HSV color to RGB color
-void HSVtoRGB(void *vRGB, void *vHSV) 
-{
-  float r, g, b, h, s, v; //this function works with floats between 0 and 1
-  float f, p, q, t;
-  int i;
-  ColorRGB *colorRGB=(ColorRGB *)vRGB;
-  ColorHSV *colorHSV=(ColorHSV *)vHSV;
-
-  h = (float)(colorHSV->h / 256.0);
-  s = (float)(colorHSV->s / 256.0);
-  v = (float)(colorHSV->v / 256.0);
-
-  //if saturation is 0, the color is a shade of grey
-  if(s == 0.0) {
-    b = v;
-    g = b;
-    r = g;
-  }
-  //if saturation > 0, more complex calculations are needed
-  else
-  {
-    h *= 6.0; //to bring hue to a number between 0 and 6, better for the calculations
-    i = (int)(floor(h)); //e.g. 2.7 becomes 2 and 3.01 becomes 3 or 4.9999 becomes 4
-    f = h - i;//the fractional part of h
-
-    p = (float)(v * (1.0 - s));
-    q = (float)(v * (1.0 - (s * f)));
-    t = (float)(v * (1.0 - (s * (1.0 - f))));
-
-    switch(i)
-    {
-      case 0: r=v; g=t; b=p; break;
-      case 1: r=q; g=v; b=p; break;
-      case 2: r=p; g=v; b=t; break;
-      case 3: r=p; g=q; b=v; break;
-      case 4: r=t; g=p; b=v; break;
-      case 5: r=v; g=p; b=q; break;
-      default: r = g = b = 0; break;
-    }
-  }
-  colorRGB->r = (int)(r * 255.0);
-  colorRGB->g = (int)(g * 255.0);
-  colorRGB->b = (int)(b * 255.0);
-}
-
 void updateParticles(){
     unsigned int newX, newY;
+    double sine;
     for(int i = 0; i<numParticles; i++){
         newX = particles[i].x + particles[i].vx;
         newY = particles[i].y + particles[i].vy;
+//        sine = 1+sin((frame/15)/PI);
+//        newX = 255*(sine/2);
+//        sine = 1+cos((frame/15)/PI);
+//        newY = 255*(sine/2);
         //particles[i].ttl--;
         if(   particles[i].ttl == 0 
            || newX < 0
@@ -105,14 +71,31 @@ void updateParticles(){
 }
 
 void reviveParticle(byte i){
-    particles[i].x = random(maxDim);
-    particles[i].y = 0;
+    VactorCart vec;
+    pCount++;
+    particles[i].x = 112;
+    particles[i].y = 112;
+    
+    polarToCart(random(5,9), pCount*10, &vec);
+    particles[i].vx = vec.x;
+    particles[i].vy = vec.y;
 
-    particles[i].vx = random(4)-2;
-    particles[i].vy = random(1, 2);
+//    if (random(2)){
+//        particles[i].vx = random(1, 3)-3;
+//    } else {
+//        particles[i].vx = random(1, 3);
+//    }
+//    if (random(2)){
+//        particles[i].vy = random(1, 3)-3;
+//    } else {
+//        particles[i].vy = random(1, 3);
+//    }
 
-    particles[i].ttl = random(128);
-    particles[i].hue = frame % 250;
+    particles[i].ttl = 200;//random(32);
+//    particles[i].hue = random(250);
+//    particles[i].hue = 250;
+    particles[i].hue = pCount%250;
+//    particles[i].hue = frame%250;
 }
 
 void addColorToMatrix(byte col, byte row, void *vHSV){
@@ -288,9 +271,10 @@ void resetMatrix(){
     //init all pixels to zero
     for (byte y=0;y<ColorduinoScreenWidth;y++) {
         for(byte x=0;x<ColorduinoScreenHeight;x++) {
-            matrix[x][y].h = 0;
-            matrix[x][y].s = 0;
-            matrix[x][y].v = 0;
+//            matrix[x][y].h = 0;
+//            matrix[x][y].s = 0;
+//            matrix[x][y].v = 0;
+            matrix[x][y].v = matrix[x][y].v>>1;
         }
     }
 //    matrix[3][3].h = 0;
@@ -340,15 +324,75 @@ void loop()
 {
     updateParticles();
     drawMatrix();
-//    if (frame % 2 == 0){
-//        Colorduino.SetPixel(7, 7, 200, 0, 0);
-//    }
-//    else {
-//        Colorduino.SetPixel(7, 7, 0, 0, 0);
-//    }
+    if (frame % 2 == 0){
+        Colorduino.SetPixel(7, 7, 200, 0, 0);
+    }
+    else {
+        Colorduino.SetPixel(7, 7, 0, 0, 0);
+    }
     frame++;
     
     Colorduino.FlipPage();
-    delay(10);
+    //delay(20);
     //fillWhite();
+}
+
+/**
+ * convert polar coordinates to cartesian vector
+ */
+void polarToCart(byte r, word angle, void *vCart){
+    VactorCart *vectorCart=(VactorCart *)vCart;
+    float radAngle;
+    
+    // Conver from Degree -> Rad
+    radAngle = -angle*(PI/180) ;
+    // Convert Polar -> Cartesian
+    vectorCart->x = (signed char)(r * cos(radAngle));
+    vectorCart->y = (signed char)(r * sin(radAngle));
+}
+
+//Converts an HSV color to RGB color
+void HSVtoRGB(void *vRGB, void *vHSV) 
+{
+  float r, g, b, h, s, v; //this function works with floats between 0 and 1
+  float f, p, q, t;
+  int i;
+  ColorRGB *colorRGB=(ColorRGB *)vRGB;
+  ColorHSV *colorHSV=(ColorHSV *)vHSV;
+
+  h = (float)(colorHSV->h / 256.0);
+  s = (float)(colorHSV->s / 256.0);
+  v = (float)(colorHSV->v / 256.0);
+
+  //if saturation is 0, the color is a shade of grey
+  if(s == 0.0) {
+    b = v;
+    g = b;
+    r = g;
+  }
+  //if saturation > 0, more complex calculations are needed
+  else
+  {
+    h *= 6.0; //to bring hue to a number between 0 and 6, better for the calculations
+    i = (int)(floor(h)); //e.g. 2.7 becomes 2 and 3.01 becomes 3 or 4.9999 becomes 4
+    f = h - i;//the fractional part of h
+
+    p = (float)(v * (1.0 - s));
+    q = (float)(v * (1.0 - (s * f)));
+    t = (float)(v * (1.0 - (s * (1.0 - f))));
+
+    switch(i)
+    {
+      case 0: r=v; g=t; b=p; break;
+      case 1: r=q; g=v; b=p; break;
+      case 2: r=p; g=v; b=t; break;
+      case 3: r=p; g=q; b=v; break;
+      case 4: r=t; g=p; b=v; break;
+      case 5: r=v; g=p; b=q; break;
+      default: r = g = b = 0; break;
+    }
+  }
+  colorRGB->r = (int)(r * 255.0);
+  colorRGB->g = (int)(g * 255.0);
+  colorRGB->b = (int)(b * 255.0);
 }
