@@ -35,11 +35,12 @@ typedef struct
 
 const byte res = 8;
 const byte maxDim = 255;
-const byte numParticles = 20;
+const byte numParticles = 36;
 const byte pWidth = maxDim / res + 1; //32
 const int pSurface = pWidth*pWidth; //1024
 unsigned int frame = 0;
 unsigned int pCount = 0;
+boolean ccw = false;
 
 Particle particles[numParticles];
 
@@ -55,7 +56,7 @@ void updateParticles(){
 //        newX = 255*(sine/2);
 //        sine = 1+cos((frame/15)/PI);
 //        newY = 255*(sine/2);
-        //particles[i].ttl--;
+        particles[i].ttl-=6;
         if(   particles[i].ttl == 0 
            || newX < 0
            || newX > maxDim
@@ -72,11 +73,20 @@ void updateParticles(){
 
 void reviveParticle(byte i){
     VactorCart vec;
-    pCount++;
+    if (ccw){
+        pCount--;
+    }
+    else {
+        pCount++;
+    }
+    if ((pCount % 200) == 0){
+        ccw = !ccw;
+    }
+   
+    polarToCart(5, pCount*10, &vec);
     particles[i].x = 112;
     particles[i].y = 112;
-    
-    polarToCart(random(5,9), pCount*10, &vec);
+   
     particles[i].vx = vec.x;
     particles[i].vy = vec.y;
 
@@ -91,8 +101,8 @@ void reviveParticle(byte i){
 //        particles[i].vy = random(1, 3);
 //    }
 
-    particles[i].ttl = 200;//random(32);
-//    particles[i].hue = random(250);
+    particles[i].ttl = random(32,200);
+//    particles[i].hue = random(12);
 //    particles[i].hue = 250;
     particles[i].hue = pCount%250;
 //    particles[i].hue = frame%250;
@@ -115,7 +125,7 @@ void addColorToMatrix(byte col, byte row, void *vHSV){
     tempVal = (((long)matrix[col][row].v*matrix[col][row].h)+((long)colorHSV->v*colorHSV->h))/(matrix[col][row].v+colorHSV->v);
     matrix[col][row].h = (byte)tempVal;
     matrix[col][row].s = colorHSV->s;
-    matrix[col][row].v = max(matrix[col][row].v, colorHSV->v);
+    matrix[col][row].v = min(matrix[col][row].v + colorHSV->v, 250);
 #ifdef DEBUG     
 //    Serial.print(" Col:");
 //    Serial.print(col);
@@ -324,16 +334,16 @@ void loop()
 {
     updateParticles();
     drawMatrix();
-    if (frame % 2 == 0){
-        Colorduino.SetPixel(7, 7, 200, 0, 0);
-    }
-    else {
-        Colorduino.SetPixel(7, 7, 0, 0, 0);
-    }
+//    if (frame % 2 == 0){
+//        Colorduino.SetPixel(7, 7, 200, 0, 0);
+//    }
+//    else {
+//        Colorduino.SetPixel(7, 7, 0, 0, 0);
+//    }
     frame++;
     
     Colorduino.FlipPage();
-    //delay(20);
+    delay(20);
     //fillWhite();
 }
 
