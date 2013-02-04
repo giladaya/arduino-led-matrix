@@ -5,7 +5,7 @@
 
 #include "SpinEmitter.h"
 
-SpinEmitter::SpinEmitter(byte x, byte y, byte r, byte rv)
+SpinEmitter::SpinEmitter(byte x, byte y, byte r, signed char rv)
 {
     this->x = x;
     this->y = y;
