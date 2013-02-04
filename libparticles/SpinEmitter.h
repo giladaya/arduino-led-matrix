@@ -16,9 +16,9 @@ class SpinEmitter : public Emitter
         byte x;   //left
         byte y;   //bottom
         byte r;   //radius
-        unsigned int deg; //degrees
+        byte rv;  //radial velocity
         unsigned int counter;
-        SpinEmitter(byte x, byte y, byte r);
+        SpinEmitter(byte x, byte y, byte r, byte rv);
         void emit(Particle * particle);
     private:
 };

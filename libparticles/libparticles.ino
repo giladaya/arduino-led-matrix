@@ -37,7 +37,7 @@ unsigned int pCount = 0;
 boolean ccw = false;
 
 Particle particles[numParticles];
-SpinEmitter emitter(112, 112, 5);
+SpinEmitter emitter(112, 112, 5, 5);
 //RainEmitter emitter;
 ParticleSys pSys(numParticles, particles, &emitter);
 
