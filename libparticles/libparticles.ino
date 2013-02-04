@@ -84,7 +84,7 @@ void drawMatrix(){
     long tempVal;
     ColorHSV colorHSV;
     
-    resetMatrix();
+    fadeMatrix();
     
     //go over particles and update matrix cells on the way
     for(int i = 0; i<numParticles; i++){
@@ -140,6 +140,17 @@ void drawMatrix(){
 
 void resetMatrix(){
     //init all pixels to zero
+    for (byte y=0;y<ColorduinoScreenWidth;y++) {
+        for(byte x=0;x<ColorduinoScreenHeight;x++) {
+            matrix[x][y].r = 0;
+            matrix[x][y].g = 0;
+            matrix[x][y].b = 0;
+        }
+    }
+}
+
+void fadeMatrix(){
+    //fade all pixels
     for (byte y=0;y<ColorduinoScreenWidth;y++) {
         for(byte x=0;x<ColorduinoScreenHeight;x++) {
             matrix[x][y].r = matrix[x][y].r>>1;
