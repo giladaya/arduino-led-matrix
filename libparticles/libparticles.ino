@@ -29,64 +29,59 @@ typedef struct
 
 const byte res = 8;
 const byte maxDim = 255;
-const byte numParticles = 36;
+const byte numParticles = 50;
 const byte pWidth = maxDim / res + 1; //32
 const int pSurface = pWidth*pWidth; //1024
-unsigned int frame = 0;
 unsigned int pCount = 0;
-boolean ccw = false;
+boolean pulseOn = false;
 
 Particle particles[numParticles];
-SpinEmitter emitter(112, 112, 5, 5);
+SpinEmitter emitter(112, 112, 5, 2);
 //RainEmitter emitter;
 ParticleSys pSys(numParticles, particles, &emitter);
 
-ColorHSV matrix[res][res];
+ColorRGB matrix[res][res];
 
 void addColorToMatrix(byte col, byte row, void *vHSV){
     ColorHSV *colorHSV=(ColorHSV *)vHSV;
-    long tempVal;
+    ColorRGB colorRGB;
+    int tempVal, res;
     
     if (colorHSV->v == 0){
         return;
     }
-//    float am, a;
-//    am = max(matrix[col][row].r, max(matrix[col][row].g, matrix[col][row].b))/256.0;
-//    a = am + ap*(1-am);
-//    matrix[col][row].r = (matrix[col][row].r * am + colorRGB->r * ap * (1-am));
-//    matrix[col][row].g = (matrix[col][row].g * am + colorRGB->g * ap * (1-am));
-//    matrix[col][row].b = (matrix[col][row].b * am + colorRGB->b * ap * (1-am));
     
-    tempVal = (((long)matrix[col][row].v*matrix[col][row].h)+((long)colorHSV->v*colorHSV->h))/(matrix[col][row].v+colorHSV->v);
-    matrix[col][row].h = (byte)tempVal;
-    matrix[col][row].s = colorHSV->s;
-    matrix[col][row].v = min(matrix[col][row].v + colorHSV->v, 250);
-#ifdef DEBUG     
-//    Serial.print(" Col:");
-//    Serial.print(col);
-//    Serial.print(" Row:");
-//    Serial.print(row);
-    Serial.println("Adding: ");
-    Serial.print("   H: ");
-    Serial.print(colorHSV->h);
-    Serial.print(" S: ");
-    Serial.print(colorHSV->s);
-    Serial.print(" V: ");
-    Serial.println(colorHSV->v);
-    Serial.print("-> H: ");
-    Serial.print(matrix[col][row].h);
-    Serial.print(" S: ");
-    Serial.print(matrix[col][row].s);
-    Serial.print(" V: ");
-    Serial.println(matrix[col][row].v);
-#endif    
+    HSVtoRGB(&colorRGB, colorHSV); 
+    
+    tempVal = matrix[col][row].r + colorRGB.r;
+    matrix[col][row].r = min(tempVal, 255);
+    if (tempVal > 255){
+        res = tempVal-255;
+        res = res>>1;
+        matrix[col][row].g = min((matrix[col][row].g+res), 255);
+        matrix[col][row].b = min((matrix[col][row].b+res), 255);
+    }
+    tempVal = matrix[col][row].g + colorRGB.g;
+    matrix[col][row].g = min(tempVal, 255);
+    if (tempVal > 255){
+        res = tempVal-255;
+        res = res>>1;
+        matrix[col][row].r = min((matrix[col][row].r+res), 255);
+        matrix[col][row].b = min((matrix[col][row].b+res), 255);
+    }
+    tempVal = matrix[col][row].b + colorRGB.b;
+    matrix[col][row].b = min(tempVal, 255);
+    if (tempVal > 255){
+        res = tempVal-255;
+        res = res>>1;
+        matrix[col][row].r = min((matrix[col][row].r+res), 255);
+        matrix[col][row].g = min((matrix[col][row].g+res), 255);
+    }
 }
 
 void drawMatrix(){
     byte row, col, dx, dy;
-    float pcnt;
     long tempVal;
-    ColorRGB colorRGB;
     ColorHSV colorHSV;
     
     resetMatrix();
@@ -103,40 +98,10 @@ void drawMatrix(){
         //bottom left
         col = particles[i].x / pWidth;
         row = particles[i].y / pWidth;
-#ifdef DEBUG        
-        if (i == 0){
-            Serial.print("X:");
-            Serial.print(particles[i].x);
-            Serial.print(" Y:");
-            Serial.print(particles[i].y);
-            Serial.print(" Col:");
-            Serial.print(col);
-            Serial.print(" Row:");
-            Serial.print(row);
-            Serial.print(" Hue:");
-            Serial.println(particles[i].hue);
-//            Serial.print(" dx:");
-//            Serial.print(dx);
-//            Serial.print(" dy:");
-//            Serial.println(dy); 
-        }
-#endif        
-        
         tempVal = (long)dx*dy*particles[i].ttl/pSurface;
         colorHSV.v = (byte)tempVal;
         addColorToMatrix(col, row, &colorHSV);
 
-#ifdef DEBUG        
-        if (i == 0){
-//            Serial.print("bl - H: ");
-//            Serial.print(matrix[col][row].h);
-//            Serial.print(" S: ");
-//            Serial.print(matrix[col][row].s);
-//            Serial.print(" V: ");
-//            Serial.println(matrix[col][row].v);
-        }
-#endif        
-        
         //bottom right;
         col++;
         if (col < res){
@@ -144,18 +109,7 @@ void drawMatrix(){
             colorHSV.v = (byte)tempVal;
             addColorToMatrix(col, row, &colorHSV);
         }
-        
-#ifdef DEBUG        
-        if (i == 0){
-//            Serial.print("br - H: ");
-//            Serial.print(matrix[col][row].h);
-//            Serial.print(" S: ");
-//            Serial.print(matrix[col][row].s);
-//            Serial.print(" V: ");
-//            Serial.println(matrix[col][row].v);
-        }
-#endif        
-        
+
         //top right
         row++;
         if (col < res && row < res){
@@ -163,17 +117,6 @@ void drawMatrix(){
             colorHSV.v = (byte)tempVal;
             addColorToMatrix(col, row, &colorHSV);
         }
-        
-#ifdef DEBUG        
-        if (i == 0){
-//            Serial.print("tr - H: ");
-//            Serial.print(matrix[col][row].h);
-//            Serial.print(" S: ");
-//            Serial.print(matrix[col][row].s);
-//            Serial.print(" V: ");
-//            Serial.println(matrix[col][row].v);
-        }
-#endif
         
         //top left
         col--;
@@ -184,30 +127,13 @@ void drawMatrix(){
         }
 
 #ifdef DEBUG        
-        if (i == 0){
-//            Serial.print("tl - H: ");
-//            Serial.print(matrix[col][row].h);
-//            Serial.print(" S: ");
-//            Serial.print(matrix[col][row].s);
-//            Serial.print(" V: ");
-//            Serial.println(matrix[col][row].v);
-        }
+        if (i == 0) Serial.println("--------------");
 #endif   
-#ifdef DEBUG        
-        if (i == 0){
-            Serial.println("--------------");
-        }
-#endif   
-        
     }
     
     for (byte y=0;y<res;y++) {
         for(byte x=0;x<res;x++) {
-            colorHSV.h = matrix[x][y].h;
-            colorHSV.s = matrix[x][y].s;
-            colorHSV.v = matrix[x][y].v;
-            HSVtoRGB(&colorRGB, &colorHSV);
-            Colorduino.SetPixel(x, y, colorRGB.r, colorRGB.g, colorRGB.b);
+            Colorduino.SetPixel(x, y, matrix[x][y].r, matrix[x][y].g, matrix[x][y].b);
         }
     }
 }
@@ -216,15 +142,11 @@ void resetMatrix(){
     //init all pixels to zero
     for (byte y=0;y<ColorduinoScreenWidth;y++) {
         for(byte x=0;x<ColorduinoScreenHeight;x++) {
-//            matrix[x][y].h = 0;
-//            matrix[x][y].s = 0;
-//            matrix[x][y].v = 0;
-            matrix[x][y].v = matrix[x][y].v>>1;
+            matrix[x][y].r = matrix[x][y].r>>1;
+            matrix[x][y].g = matrix[x][y].g>>1;
+            matrix[x][y].b = matrix[x][y].b>>1;
         }
     }
-//    matrix[3][3].h = 0;
-//    matrix[3][3].s = 255;
-//    matrix[3][3].v = 128;
 }
 
 void setup()
@@ -258,13 +180,13 @@ void loop()
 {
     pSys.update();
     drawMatrix();
-//    if (frame % 2 == 0){
+//    if (pulseOn){
 //        Colorduino.SetPixel(7, 7, 200, 0, 0);
 //    }
 //    else {
 //        Colorduino.SetPixel(7, 7, 0, 0, 0);
 //    }
-    frame++;
+//    pulseOn = ! pulseOn;
     
     Colorduino.FlipPage();
     delay(20);
@@ -329,3 +251,4 @@ void HSVtoRGB(void *vRGB, void *vHSV)
   colorRGB->g = (int)(g * 255.0);
   colorRGB->b = (int)(b * 255.0);
 }
+
