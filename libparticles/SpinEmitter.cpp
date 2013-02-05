@@ -34,8 +34,6 @@ void SpinEmitter::emit(Particle * particle)
    particle->vx = (signed char)(r * cos(radAngle));
    particle->vy = (signed char)(r * sin(radAngle));
     
-   particle->ax = 0;
-   particle->ay = 0;
    particle->ttl = random(20,100);
    particle->hue = counter%255;
    particle->isAlive = true;
