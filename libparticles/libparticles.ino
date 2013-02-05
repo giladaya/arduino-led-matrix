@@ -29,60 +29,77 @@ typedef struct
 
 const byte res = 8;
 const byte maxDim = 255;
-const byte numParticles = 50;
+const byte numParticles = 70;
 const byte pWidth = maxDim / res + 1; //32
 const int pSurface = pWidth*pWidth; //1024
 unsigned int pCount = 0;
 boolean pulseOn = false;
 
 BounceParticle particles[numParticles];
-SpinEmitter emitter(112, 112, 5, 2);
+SpinEmitter emitter(112, 112, 4, 2);
 //RainEmitter emitter;
 ParticleSys pSys(numParticles, particles, &emitter);
 
 ColorRGB matrix[res][res];
 
-void addColorToMatrix(byte col, byte row, void *vHSV){
-    ColorHSV *colorHSV=(ColorHSV *)vHSV;
-    ColorRGB colorRGB;
-    int tempVal, res;
+/**
+ * Add a color value to a matrix cell
+ *
+ * @param col cell column
+ * @param row cell row
+ * @param vRGB pointer to a struct that holds the base color in RGB space
+ * @param value alpha in a scale of 0-255
+ */
+void addColorToMatrix(byte col, byte row, void *vRGB, unsigned long value){
+    ColorRGB *colorRGB=(ColorRGB *)vRGB;
+    unsigned long tempVal;
+    int res; //residual
     
-    if (colorHSV->v == 0){
-        return;
+    //RED
+    if (colorRGB->r > 0){
+        tempVal = matrix[col][row].r + ((value*colorRGB->r)>>8);
+        matrix[col][row].r = min(tempVal, 255);
+        if (tempVal > 255){
+            res = tempVal-255;
+            res = res>>1;
+            matrix[col][row].g = min((matrix[col][row].g+res), 255);
+            matrix[col][row].b = min((matrix[col][row].b+res), 255);
+        }
     }
     
-    HSVtoRGB(&colorRGB, colorHSV); 
+    //GREEN
+    if (colorRGB->g > 0){
+        tempVal = matrix[col][row].g + ((value*colorRGB->g)>>8);
+        matrix[col][row].g = min(tempVal, 255);
+        if (tempVal > 255){
+            res = tempVal-255;
+            res = res>>1;
+            matrix[col][row].r = min((matrix[col][row].r+res), 255);
+            matrix[col][row].b = min((matrix[col][row].b+res), 255);
+        }
+    }
     
-    tempVal = matrix[col][row].r + colorRGB.r;
-    matrix[col][row].r = min(tempVal, 255);
-    if (tempVal > 255){
-        res = tempVal-255;
-        res = res>>1;
-        matrix[col][row].g = min((matrix[col][row].g+res), 255);
-        matrix[col][row].b = min((matrix[col][row].b+res), 255);
-    }
-    tempVal = matrix[col][row].g + colorRGB.g;
-    matrix[col][row].g = min(tempVal, 255);
-    if (tempVal > 255){
-        res = tempVal-255;
-        res = res>>1;
-        matrix[col][row].r = min((matrix[col][row].r+res), 255);
-        matrix[col][row].b = min((matrix[col][row].b+res), 255);
-    }
-    tempVal = matrix[col][row].b + colorRGB.b;
-    matrix[col][row].b = min(tempVal, 255);
-    if (tempVal > 255){
-        res = tempVal-255;
-        res = res>>1;
-        matrix[col][row].r = min((matrix[col][row].r+res), 255);
-        matrix[col][row].g = min((matrix[col][row].g+res), 255);
+    //BLUE
+    if (colorRGB->g > 0){
+        tempVal = matrix[col][row].b + ((value*colorRGB->b)>>8);
+        matrix[col][row].b = min(tempVal, 255);
+        if (tempVal > 255){
+            res = tempVal-255;
+            res = res>>1;
+            matrix[col][row].r = min((matrix[col][row].r+res), 255);
+            matrix[col][row].g = min((matrix[col][row].g+res), 255);
+        }
     }
 }
 
+/**
+ * Render the particles into a low-resolution matrix
+ */
 void drawMatrix(){
     byte row, col, dx, dy;
-    long tempVal;
+    unsigned long tempVal;
     ColorHSV colorHSV;
+    ColorRGB baseRGB;
     
     fadeMatrix();
     
@@ -91,6 +108,8 @@ void drawMatrix(){
         //generate RGB values for particle
         colorHSV.h = particles[i].hue;
         colorHSV.s = 255;
+        colorHSV.v = 255;
+        HSVtoRGB(&baseRGB, &colorHSV);
         
         dx = pWidth - (particles[i].x % pWidth);
         dy = pWidth - (particles[i].y % pWidth);
@@ -98,32 +117,28 @@ void drawMatrix(){
         //bottom left
         col = particles[i].x / pWidth;
         row = particles[i].y / pWidth;
-        tempVal = (long)dx*dy*particles[i].ttl/pSurface;
-        colorHSV.v = (byte)tempVal;
-        addColorToMatrix(col, row, &colorHSV);
+        tempVal = ((unsigned long)dx*dy*particles[i].ttl)>>10; //divide by pSurface == 1024
+        addColorToMatrix(col, row, &baseRGB, tempVal);
 
         //bottom right;
         col++;
         if (col < res){
-            tempVal = (long)(pWidth-dx)*dy*particles[i].ttl/pSurface;
-            colorHSV.v = (byte)tempVal;
-            addColorToMatrix(col, row, &colorHSV);
+            tempVal = ((unsigned long)(pWidth-dx)*dy*particles[i].ttl)>>10; //divide by pSurface == 1024
+            addColorToMatrix(col, row, &baseRGB, tempVal);
         }
 
         //top right
         row++;
         if (col < res && row < res){
-            tempVal = (long)(pWidth-dx)*(pWidth-dy)*particles[i].ttl/pSurface;
-            colorHSV.v = (byte)tempVal;
-            addColorToMatrix(col, row, &colorHSV);
+            tempVal = ((unsigned long)(pWidth-dx)*(pWidth-dy)*particles[i].ttl)>>10; //divide by pSurface == 1024
+            addColorToMatrix(col, row, &baseRGB, tempVal);
         }
         
         //top left
         col--;
         if (row < res){
-            tempVal = (long)dx*(pWidth-dy)*particles[i].ttl/pSurface;
-            colorHSV.v = (byte)tempVal;
-            addColorToMatrix(col, row, &colorHSV);
+            tempVal = ((unsigned long)dx*(pWidth-dy)*particles[i].ttl)>>10; //divide by pSurface == 1024
+            addColorToMatrix(col, row, &baseRGB, tempVal);
         }
 
 #ifdef DEBUG        
@@ -131,6 +146,7 @@ void drawMatrix(){
 #endif   
     }
     
+    //update the actual LED matrix
     for (byte y=0;y<res;y++) {
         for(byte x=0;x<res;x++) {
             Colorduino.SetPixel(x, y, matrix[x][y].r, matrix[x][y].g, matrix[x][y].b);
@@ -203,20 +219,6 @@ void loop()
     delay(20);
 }
 
-/**
- * convert polar coordinates to cartesian vector
- */
-//void polarToCart(byte r, word angle, void *vCart){
-//    VactorCart *vectorCart=(VactorCart *)vCart;
-//    float radAngle;
-//    
-//    // Conver from Degree -> Rad
-//    radAngle = -angle*(PI/180) ;
-//    // Convert Polar -> Cartesian
-//    vectorCart->x = (signed char)(r * cos(radAngle));
-//    vectorCart->y = (signed char)(r * sin(radAngle));
-//}
-
 //Converts an HSV color to RGB color
 void HSVtoRGB(void *vRGB, void *vHSV) 
 {
@@ -263,3 +265,16 @@ void HSVtoRGB(void *vRGB, void *vHSV)
   colorRGB->b = (int)(b * 255.0);
 }
 
+/**
+ * convert polar coordinates to cartesian vector
+ */
+//void polarToCart(byte r, word angle, void *vCart){
+//    VactorCart *vectorCart=(VactorCart *)vCart;
+//    float radAngle;
+//    
+//    // Conver from Degree -> Rad
+//    radAngle = -angle*(PI/180) ;
+//    // Convert Polar -> Cartesian
+//    vectorCart->x = (signed char)(r * cos(radAngle));
+//    vectorCart->y = (signed char)(r * sin(radAngle));
+//}
