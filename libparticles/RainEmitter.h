@@ -14,8 +14,10 @@ class RainEmitter : public Emitter
     public:
         unsigned int counter;
         byte baseHue;
+        char side;
+        byte maxDim;
         
-        RainEmitter();
+        RainEmitter(char side, byte maxDim);
         void emit(Particle * particle);
     private:
 };
