@@ -36,7 +36,7 @@ unsigned int pCount = 0;
 boolean pulseOn = false;
 
 BounceParticle particles[numParticles];
-SpinEmitter emitter(112, 112, 4, 2);
+SpinEmitter emitter(112, 112, 4, 4);
 //RainEmitter emitter;
 ParticleSys pSys(numParticles, particles, &emitter);
 
@@ -61,7 +61,7 @@ void addColorToMatrix(byte col, byte row, void *vRGB, unsigned long value){
         matrix[col][row].r = min(tempVal, 255);
         if (tempVal > 255){
             res = tempVal-255;
-            res = res>>1;
+            res = res>>2;
             matrix[col][row].g = min((matrix[col][row].g+res), 255);
             matrix[col][row].b = min((matrix[col][row].b+res), 255);
         }
@@ -73,7 +73,7 @@ void addColorToMatrix(byte col, byte row, void *vRGB, unsigned long value){
         matrix[col][row].g = min(tempVal, 255);
         if (tempVal > 255){
             res = tempVal-255;
-            res = res>>1;
+            res = res>>2;
             matrix[col][row].r = min((matrix[col][row].r+res), 255);
             matrix[col][row].b = min((matrix[col][row].b+res), 255);
         }
@@ -85,7 +85,7 @@ void addColorToMatrix(byte col, byte row, void *vRGB, unsigned long value){
         matrix[col][row].b = min(tempVal, 255);
         if (tempVal > 255){
             res = tempVal-255;
-            res = res>>1;
+            res = res>>2;
             matrix[col][row].r = min((matrix[col][row].r+res), 255);
             matrix[col][row].g = min((matrix[col][row].g+res), 255);
         }
