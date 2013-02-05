@@ -1,5 +1,5 @@
 #include <Colorduino.h>
-#include "Particle.h"
+#include "BounceParticle.h"
 #include "SpinEmitter.h"
 //#include "RainEmitter.h"
 #include "ParticleSys.h"
@@ -35,7 +35,7 @@ const int pSurface = pWidth*pWidth; //1024
 unsigned int pCount = 0;
 boolean pulseOn = false;
 
-Particle particles[numParticles];
+BounceParticle particles[numParticles];
 SpinEmitter emitter(112, 112, 5, 2);
 //RainEmitter emitter;
 ParticleSys pSys(numParticles, particles, &emitter);
