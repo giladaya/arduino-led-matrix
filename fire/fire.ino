@@ -128,7 +128,7 @@ void drawFrame(int pcnt){
   //each row interpolates with the one before it
   for (unsigned char y=ColorduinoScreenWidth-1;y>0;y--) {
     for (unsigned char x=0;x<ColorduinoScreenHeight;x++) {
-        colorHSV.h = hueMask[y][x];
+        colorHSV.h = 2*hueMask[y][x];
         colorHSV.s = 255;
         nextv = 
             (((100.0-pcnt)*matrix[x][y] 
