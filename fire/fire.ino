@@ -30,10 +30,10 @@ const unsigned char valueMask[ColorduinoScreenWidth][ColorduinoScreenHeight]={
 //these are the hues for the fire, 
 //should be between 0 (red) to about 13 (yellow)
 const unsigned char hueMask[ColorduinoScreenWidth][ColorduinoScreenHeight]={
-    {3, 5, 7, 9, 9, 8, 6, 4},
-    {2, 5, 7, 7, 7, 7, 5, 3},
-    {2, 4, 6, 6, 6, 6, 5, 2},
-    {1, 4, 5, 5, 5, 5, 4, 2},
+    {1, 4, 7, 9, 9, 8, 4, 1},
+    {1, 3, 5, 7, 9, 7, 3, 1},
+    {1, 3, 5, 6, 7, 6, 3, 1},
+    {1, 2, 4, 5, 5, 5, 2, 1},
     {1, 2, 4, 4, 4, 4, 2, 1},
     {0, 1, 2, 3, 3, 2, 1, 0},
     {0, 0, 1, 2, 2, 1, 0, 0},
@@ -128,7 +128,7 @@ void drawFrame(int pcnt){
   //each row interpolates with the one before it
   for (unsigned char y=ColorduinoScreenWidth-1;y>0;y--) {
     for (unsigned char x=0;x<ColorduinoScreenHeight;x++) {
-        colorHSV.h = 2*hueMask[y][x];
+        colorHSV.h = hueMask[y][x];
         colorHSV.s = 255;
         nextv = 
             (((100.0-pcnt)*matrix[x][y] 
