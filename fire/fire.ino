@@ -1,4 +1,14 @@
+//'r' for rainbowduino, 'c' for colorduino
+#define BOARD 'r'
+
+#if BOARD == 'c'
 #include <Colorduino.h>
+#else
+#include <Rainbowduino.h>
+#endif
+
+#define M_WIDTH 8
+#define M_HEIGHT 8
 
 typedef struct
 {
@@ -16,7 +26,7 @@ typedef struct
 } ColorHSV;
 
 //these values are substracetd from the generated values to give a shape to the animation
-const unsigned char valueMask[ColorduinoScreenWidth][ColorduinoScreenHeight]={
+const unsigned char valueMask[M_WIDTH][M_HEIGHT]={
     {32 , 0  , 0  , 0  , 0  , 0  , 0  , 32 },
     {64 , 0  , 0  , 0  , 0  , 0  , 0  , 64 },
     {96 , 32 , 0  , 0  , 0  , 0  , 32 , 96 },
@@ -29,7 +39,7 @@ const unsigned char valueMask[ColorduinoScreenWidth][ColorduinoScreenHeight]={
 
 //these are the hues for the fire, 
 //should be between 0 (red) to about 13 (yellow)
-const unsigned char hueMask[ColorduinoScreenWidth][ColorduinoScreenHeight]={
+const unsigned char hueMask[M_WIDTH][M_HEIGHT]={
     {1, 4, 7, 9, 9, 8, 4, 1},
     {1, 3, 5, 7, 9, 7, 3, 1},
     {1, 3, 5, 6, 7, 6, 3, 1},
@@ -40,8 +50,8 @@ const unsigned char hueMask[ColorduinoScreenWidth][ColorduinoScreenHeight]={
     {0, 0, 0, 1, 1, 0, 0, 0}
 };
 
-unsigned char matrix[ColorduinoScreenWidth][ColorduinoScreenHeight];
-unsigned char line[ColorduinoScreenWidth];
+unsigned char matrix[M_WIDTH][M_HEIGHT];
+unsigned char line[M_WIDTH];
 int pcnt = 0;
 
 //Converts an HSV color to RGB color
@@ -90,11 +100,19 @@ void HSVtoRGB(void *vRGB, void *vHSV)
   colorRGB->b = (int)(b * 255.0);
 }
 
+void setPixel(unsigned char x, unsigned char y, unsigned char colorR, unsigned char colorG, unsigned char colorB){
+#if BOARD == 'c'
+    Colorduino.SetPixel(x, y, colorR, colorG, colorB);
+#else
+    Rb.setPixelXY(M_HEIGHT-y-1, x, colorR, colorG, colorB);
+#endif
+}
+
 /**
  * Randomly generate the next line (matrix row)
  */
 void generateLine(){
-  for(unsigned char x=0;x<ColorduinoScreenHeight;x++) {
+  for(unsigned char x=0;x<M_HEIGHT;x++) {
       line[x] = random(64, 255);
   }
 }
@@ -105,13 +123,13 @@ void generateLine(){
 void shiftUp(){
   ColorRGB colorRGB;
   
-  for (unsigned char y=ColorduinoScreenWidth-1;y>0;y--) {
-    for(unsigned char x=0;x<ColorduinoScreenHeight;x++) {
+  for (unsigned char y=M_WIDTH-1;y>0;y--) {
+    for(unsigned char x=0;x<M_HEIGHT;x++) {
         matrix[x][y] = matrix[x][y-1];
     }
   }
   
-  for(unsigned char x=0;x<ColorduinoScreenHeight;x++) {
+  for(unsigned char x=0;x<M_HEIGHT;x++) {
       matrix[x][0] = line[x];
   }
 }
@@ -126,8 +144,8 @@ void drawFrame(int pcnt){
   int nextv;
   
   //each row interpolates with the one before it
-  for (unsigned char y=ColorduinoScreenWidth-1;y>0;y--) {
-    for (unsigned char x=0;x<ColorduinoScreenHeight;x++) {
+  for (unsigned char y=M_WIDTH-1;y>0;y--) {
+    for (unsigned char x=0;x<M_HEIGHT;x++) {
         colorHSV.h = hueMask[y][x];
         colorHSV.s = 255;
         nextv = 
@@ -137,24 +155,24 @@ void drawFrame(int pcnt){
         colorHSV.v = (unsigned char)max(0, nextv);
         
         HSVtoRGB(&colorRGB, &colorHSV);
-        Colorduino.SetPixel(x, y, colorRGB.r, colorRGB.g, colorRGB.b);
+        setPixel(x, y, colorRGB.r, colorRGB.g, colorRGB.b);
     }
   }
   
   //first row interpolates with the "next" line
-  for(unsigned char x=0;x<ColorduinoScreenHeight;x++) {
+  for(unsigned char x=0;x<M_HEIGHT;x++) {
       colorHSV.h = hueMask[0][x];
       colorHSV.s = 255;
       colorHSV.v = (unsigned char)(((100.0-pcnt)*matrix[x][0] + pcnt*line[x])/100.0);
       
       HSVtoRGB(&colorRGB, &colorHSV);
-      Colorduino.SetPixel(x, 0, colorRGB.r, colorRGB.g, colorRGB.b);
+      setPixel(x, 0, colorRGB.r, colorRGB.g, colorRGB.b);
   }
-  Colorduino.FlipPage(); // swap screen buffers to show it
 }
 
 void setup()
 {
+#if BOARD == 'c'    
   Colorduino.Init(); // initialize the board
   
   // compensate for relative intensity differences in R/G/B brightness
@@ -164,18 +182,19 @@ void setup()
   // whiteBalVal[2]=blue
   unsigned char whiteBalVal[3] = {36,63,7}; // for LEDSEE 6x6cm round matrix
   Colorduino.SetWhiteBal(whiteBalVal);
-  
+#else
+    Rb.init();
+#endif
+
   randomSeed(analogRead(0));
   generateLine();
   
   //init all pixels to zero
-  for (unsigned char y=0;y<ColorduinoScreenWidth;y++) {
-    for(unsigned char x=0;x<ColorduinoScreenHeight;x++) {
+  for (unsigned char y=0;y<M_WIDTH;y++) {
+    for(unsigned char x=0;x<M_HEIGHT;x++) {
         matrix[x][y] = 0;
     }
   }
-  
-  Colorduino.FlipPage(); // swap screen buffers to show it
 }
 
 void loop()
@@ -186,5 +205,8 @@ void loop()
         pcnt = 0;
     }
     drawFrame(pcnt);
+#if BOARD == 'c'    
+    Colorduino.FlipPage(); // swap screen buffers to show it
+#endif
     pcnt+=30;
 }

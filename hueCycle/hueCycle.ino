@@ -10,12 +10,20 @@
  /*
   * An example for the Arduino particle system library
   * Creates a green flame effect.
-  * 
-  * Note: this example uses the colorduino library becuse that is what I had, 
-  * but any device that supports setting a pixel to an RGB value can be used
   */
   
-//#define DEBUG 1;
+#define DEBUG 1;
+//'r' for rainbowduino, 'c' for colorduino
+#define BOARD 'r'
+
+#if BOARD == 'c'
+#include <Colorduino.h>
+#else
+#include <Rainbowduino.h>
+#endif
+
+#define M_WIDTH 8
+#define M_HEIGHT 8
 
 typedef struct
 {
@@ -34,9 +42,9 @@ typedef struct
   
 unsigned int counter;
 
-#include <Colorduino.h>
 void setup()
 {
+#if BOARD == 'c'
     Colorduino.Init(); // initialize the board
 
     // compensate for relative intensity differences in R/G/B brightness
@@ -44,8 +52,12 @@ void setup()
     // whiteBalVal[0]=red
     // whiteBalVal[1]=green
     // whiteBalVal[2]=blue
-    byte whiteBalVal[3] = {36, 63, 7}; // for LEDSEE 6x6cm round matrix
+    unsigned char whiteBalVal[3] = {
+        36,63,6    }; // for LEDSEE 6x6cm round matrix
     Colorduino.SetWhiteBal(whiteBalVal);
+#else
+    Rb.init();
+#endif
     
     counter = 0;
 
@@ -61,9 +73,10 @@ void loop()
 
     colorHSV.v = 255;
     colorHSV.s = 255;
-    colorHSV.h = counter%10+170;
+    colorHSV.h = counter%255;
     
     HSVtoRGB(&colorRGB, &colorHSV);
+    uint32_t result = ((((uint32_t)colorRGB.r)<<16) | (((uint32_t)colorRGB.g)<<8) | colorRGB.b);
     
 #ifdef DEBUG    
     Serial.print("H: ");
@@ -73,10 +86,16 @@ void loop()
     Serial.print(" G: ");
     Serial.print(colorRGB.g);    
     Serial.print(" B: ");
-    Serial.println(colorRGB.b);
+    Serial.print(colorRGB.b);
+    Serial.print(" -> ");
+    Serial.println(result, HEX);
 #endif    
     
+#if BOARD == 'c'    
     Colorduino.ColorFill(colorRGB.r, colorRGB.g, colorRGB.b);
+#else
+    Rb.fillRectangle(0, 0, 8, 8, result);
+#endif
     counter++;
     delay(100);
 }
